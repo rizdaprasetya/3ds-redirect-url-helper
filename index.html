@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Open 3DS Page</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+      .frame-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 0px;
+      }
+      iframe {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <p>. .</p>
+    <div class="frame-container">
+      <iframe
+        id="main-frame"
+        src="data:text/html, <html>loading...</html>"
+        frameborder="0"
+      ></iframe>
+    </div>
+    <!-- Include Midtrans JS library -->
+    <script
+      id="midtrans-script"
+      src="https://api.midtrans.com/v2/assets/js/midtrans-new-3ds.min.js"
+      data-environment="sandbox"
+      data-client-key="NONE"
+      type="text/javascript"
+    ></script>
+  </body>
+  <script>
+    /**
+     * var declarations
+     **/
+    var dd = true; //debug var
+    var CONST = {
+      TEXT: {
+        DEFAULT_ERROR:
+          "data:text/html, <html>Invalid. Please check parameter, or read usage instruction</html>"
+      }
+    };
+    var PARAM = {
+      THREE_DS_URL: "otp_url",
+      FINISH_URL: "finish_url"
+    };
+    var UI = {
+      MAIN_FRAME: "#main-frame"
+    };
+    var state = {
+      threeDsUrl: null,
+      finishUrl: null,
+      finalUrl: null
+    };
+
+
+    /**
+     * Main script
+     **/
+    var mainScript = function() {
+
+      var redirectToFinish = function(response) {
+        dd && console.log("3DS response received", response);
+        state.finalUrl = new URL(
+          state.finishUrl.includes("http")?
+            state.finishUrl:
+            "http://"+state.finishUrl
+        );
+        for (const [key, val] of Object.entries(response)) {
+          state.finalUrl.searchParams.set(key, val);
+        }
+        state.finalUrl = state.finalUrl.toString();
+        dd && console.log("finalUrl:", state.finalUrl);
+        window.location = state.finalUrl;
+      };
+
+      var midtransOptions = {
+        performAuthentication: function(redirect_url) {
+          var mainFrame = document.querySelector(UI.MAIN_FRAME);
+          mainFrame.src = state.threeDsUrl;
+          dd && console.log("opened iframe", state);
+        },
+        onSuccess: redirectToFinish,
+        onFailure: redirectToFinish,
+        onPending: redirectToFinish
+      };
+
+      var queryParam = new URLSearchParams(location.search);
+      var isParamSufficient = queryParam.has(PARAM.THREE_DS_URL);
+      if (isParamSufficient) {
+        state.threeDsUrl = decodeURIComponent(
+          queryParam.get(PARAM.THREE_DS_URL)
+        );
+        state.finishUrl = decodeURIComponent(queryParam.get(PARAM.FINISH_URL));
+        MidtransNew3ds.authenticate(state.threeDsUrl, midtransOptions);
+      } else {
+        var mainFrame = document.querySelector(UI.MAIN_FRAME);
+        mainFrame.src = CONST.TEXT.DEFAULT_ERROR;
+      }
+
+      dd && console.log("main script ran!");
+    };
+
+
+    /**
+     * Helper, to make sure script run on page ready
+     **/
+    function onDocumentReady(fn) {
+      if (document.readyState != "loading") {
+        fn();
+      } else {
+        document.addEventListener("DOMContentLoaded", fn);
+      }
+    }
+    onDocumentReady(mainScript); // entry point
+  </script>
+</html>
