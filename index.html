@@ -81,9 +81,10 @@
             state.finishUrl:
             "http://"+state.finishUrl
         );
-        for (const [key, val] of Object.entries(response)) {
-          state.finalUrl.searchParams.set(key, val);
-        }
+        // Map all JSON response keys into URL GET Query param
+        Object.keys(response).forEach(function(key) {
+          state.finalUrl.searchParams.set(key, response[key]);
+        });
         state.finalUrl = state.finalUrl.toString();
         dd && console.log("finalUrl:", state.finalUrl);
         window.location = state.finalUrl;
